@@ -8,8 +8,6 @@ const useAsync = (asyncFunction, shouldRun) => {
   });
 
   const run = useCallback(async () => {
-    console.log('EFFECT', new Date().toLocaleString('pt-BR'));
-
     //Delay para fins de testes e visualização das mensagens [ Didático ]
     await new Promise((d) => setTimeout(d, 2000));
 
