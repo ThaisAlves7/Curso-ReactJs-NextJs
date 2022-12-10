@@ -1,69 +1,110 @@
-import React from 'react';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-import './styles.css';
+// Verificar igualdade
+const isObjectEqual = (objA, objB) => {
+  return JSON.stringify(objA) === JSON.stringify(objB);
+};
 
-import { Posts } from '../../components/Posts';
-import { loadPosts } from '../../utils/load-posts';
-import { Button } from '../../components/Button';
-import { TextInput } from '../../components/TextInput';
-
-export const Home = () => {
-  const [posts, setPosts] = useState([]);
-  const [allPosts, setAllPosts] = useState([]);
-  const [page, setPage] = useState(0);
-  const [postsPerPage] = useState(2);
-  const [searchValue, setSearchValue] = useState('');
-
-  const noMorePosts = page + postsPerPage >= allPosts.length;
-
-  const filteredPosts = searchValue
-    ? allPosts.filter((post) => {
-        return post.title.toLowerCase().includes(searchValue.toLowerCase());
-      })
-    : posts;
-
-  const handleLoadPosts = useCallback(async (page, postsPerPage) => {
-    const postsAndPhotos = await loadPosts();
-
-    setPosts(postsAndPhotos.slice(page, postsPerPage));
-    setAllPosts(postsAndPhotos);
-  }, []);
+/* eslint-disable no-unused-vars */
+const useFetch = (url, options) => {
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [shouldLoad, setShouldLoad] = useState(false);
+  const urlRef = useRef(url);
+  const optionsRef = useRef(options);
 
   useEffect(() => {
-    handleLoadPosts(0, postsPerPage);
-  }, [handleLoadPosts, postsPerPage]);
+    let changed = false;
 
-  const loadMorePosts = () => {
-    const nextPage = page + postsPerPage;
-    const nextPosts = allPosts.slice(nextPage, nextPage + postsPerPage);
+    // Comparar se as urls são iguais
+    if (!isObjectEqual(url, urlRef.current)) {
+      urlRef.current = url;
+      changed = true;
+    }
 
-    posts.push(...nextPosts);
+    // Comparar se as options são iguais
+    if (!isObjectEqual(options, optionsRef.current)) {
+      optionsRef.current = options;
+      changed = true;
+    }
 
-    setPosts(posts);
-    setPage(nextPage);
+    // Realiza a chamada apenas 1 vez
+    if (changed) {
+      setShouldLoad((s) => !s);
+    }
+  }, [url, options]);
+
+  useEffect(() => {
+    let wait = false;
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    setLoading(true);
+
+    const fetchData = async () => {
+      // Criando um delay só para testes
+      await new Promise((r) => setTimeout(r, 3000));
+
+      try {
+        const response = await fetch(urlRef.current, { signal, ...optionsRef.current });
+        const jsonResult = await response.json();
+
+        if (!wait) {
+          setResult(jsonResult);
+          setLoading(false);
+        }
+      } catch (err) {
+        if (!wait) {
+          setLoading(false);
+        }
+        console.log('My Error', err.message);
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      wait = true;
+      controller.abort;
+    };
+  }, [shouldLoad]);
+
+  return [result, loading];
+};
+
+export const Home = () => {
+  const [postId, setPostId] = useState('');
+  const [result, loading] = useFetch('https://jsonplaceholder.typicode.com/posts/' + postId, {
+    headers: {
+      abc: '1' + postId,
+    },
+  });
+
+  if (loading) {
+    return <p>Loading...</p>;
+  }
+
+  const handleClick = (id) => {
+    setPostId(id);
   };
 
-  const handleChange = (e) => {
-    const { value } = e.target;
-    setSearchValue(value);
-  };
-
-  return (
-    <section className="container">
-      <div className="search-container">
-        {!!searchValue && <h1>Search value: {searchValue}</h1>}
-
-        <TextInput searchValue={searchValue} handleChange={handleChange} />
+  if (!loading && result) {
+    return (
+      <div>
+        {result?.length > 0 ? (
+          result.map((p) => (
+            <div key={`post-${p.id}`} onClick={() => handleClick(p.id)}>
+              <p>{p.title}</p>
+            </div>
+          ))
+        ) : (
+          <div onClick={() => handleClick('')}>
+            <p>{result.title}</p>
+          </div>
+        )}
       </div>
+    );
+  }
 
-      {filteredPosts.length > 0 && <Posts posts={filteredPosts} />}
-
-      {filteredPosts.length === 0 && <p>Não existem posts =( </p>}
-
-      <div className="button-container">
-        {!searchValue && <Button text="Load More Posts" onClick={loadMorePosts} disabled={noMorePosts} />}
-      </div>
-    </section>
-  );
+  return <h1>Hello World!!!</h1>;
 };
