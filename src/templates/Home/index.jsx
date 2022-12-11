@@ -1,52 +1,49 @@
-import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react';
+// Verificar tamanho da tela para "Media Queries de responsividade"
+/* (function () {
+  console.clear();
+  const matchMedia = window.matchMedia('(max-width: 768px)');
 
-export const Home = () => {
-  const [counted, setCounted] = useState([0, 1, 2, 3, 4, 5]);
-  const divRef = useRef();
-
-  // Realiza a rolagem de forma automática a cada inserção dentro da Div
-  useLayoutEffect(() => {
-    const now = Date.now();
-    while (Date.now() < now + 300);
-    divRef.current.divRef.scrollTop = divRef.current.divRef.scrollHeight;
+  matchMedia.addListener(function () {
+    console.log(matchMedia, window.innerWidth);
   });
+})(); */
 
-  // Adiciona um item na lista na sequência somando +1 ao valor anterior
-  const handleClick = () => {
-    setCounted((c) => [...c, +c.slice(-1) + 1]);
-    divRef.current.handleClick();
-  };
+import { useDebugValue, useEffect, useState } from 'react';
 
-  return (
-    <>
-      <button onClick={handleClick}>Count {counted.slice(-1)}</button>
-      <DisplayCounted counted={counted} ref={divRef} />
-    </>
-  );
+const useMediaQuery = (queryValue, initialValue = false) => {
+  const [match, setMatch] = useState(initialValue);
+
+  useDebugValue('Qualquer coisa que eu quiser');
+
+  useEffect(() => {
+    let isMounted = true;
+    const matchMedia = window.matchMedia(queryValue);
+
+    const handleChange = () => {
+      // Verifica se a função esta montada ainda
+      if (!isMounted) return;
+      setMatch(Boolean(matchMedia.matches));
+    };
+
+    matchMedia.addEventListener('change', handleChange);
+    setMatch(!!matchMedia.matches);
+
+    return () => {
+      isMounted = false;
+      matchMedia.removeEventListener('change', handleChange);
+    };
+  }, [queryValue]);
+
+  return match;
 };
 
-export const DisplayCounted = forwardRef(function DisplayCounted({ counted }, ref) {
-  const [rand, setRand] = useState('0.24');
-  const divRef = useRef();
+export const Home = () => {
+  const huge = useMediaQuery('(min-width: 980px)');
+  const big = useMediaQuery('(max-width: 979px) and (min-width: 768px)');
+  const medium = useMediaQuery('(max-width: 767px) and (min-width: 321px)');
+  const small = useMediaQuery('(max-width: 321px)');
 
-  const handleClick = () => {
-    setRand(Math.random().toFixed(2));
-  };
+  const background = huge ? 'green' : big ? 'red' : medium ? 'yellow' : small ? 'purple' : null;
 
-  useImperativeHandle(ref, () => ({
-    handleClick,
-    divRef: divRef.current,
-  }));
-
-  return (
-    <div ref={divRef} style={{ height: '100px', width: '100px', overflowY: 'scroll' }}>
-      {counted.map((c) => {
-        return (
-          <p onClick={handleClick} key={`c-${c}`}>
-            {c} +++ {rand}
-          </p>
-        );
-      })}
-    </div>
-  );
-});
+  return <div style={{ fontSize: '60px', background }}> Oi</div>;
+};
