@@ -1,4 +1,4 @@
-import { Component, useEffect, useState } from 'react';
+import { Children, cloneElement, createContext, useContext, useState } from 'react';
 
 const s = {
   style: {
@@ -6,56 +6,51 @@ const s = {
   },
 };
 
-class MyErrorBoundary extends Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false };
-  }
+const TurnOnOffContext = createContext();
 
-  static getDerivedStateFromError(error) {
-    // Atualiza o state para que a próxima renderização mostre a UI alternativa.
-    return { hasError: true };
-  }
+const TurnOnOff = ({ children }) => {
+  const [isOn, setIsOn] = useState(false);
 
-  componentDidCatch(error, errorInfo) {
-    // Você também pode registrar o erro em um serviço de relatórios de erro
-    // console.log(error, errorInfo);
-  }
+  // Obter a alteração de estado de isOn [Realiza no setIsOn] passando isso para onTurn
+  const onTurn = () => setIsOn((s) => !s);
 
-  render() {
-    if (this.state.hasError) {
-      // Você pode renderizar qualquer UI alternativa
-      return <h1>Algo deu errado.</h1>;
-    }
+  return <TurnOnOffContext.Provider value={{ isOn, onTurn }}>{children}</TurnOnOffContext.Provider>;
+};
 
-    return this.props.children;
-  }
-}
+const TurnedOn = ({ children }) => {
+  const { isOn } = useContext(TurnOnOffContext);
+  return isOn ? children : null;
+};
+const TurnedOff = ({ children }) => {
+  const { isOn } = useContext(TurnOnOffContext);
+  return isOn ? null : children;
+};
 
-const ItWillTrueError = () => {
-  const [counter, setCounter] = useState(0);
-
-  useEffect(() => {
-    if (counter > 3) {
-      throw new Error('Que chato!!!');
-    }
-  }, [counter]);
+const TurnButton = ({ ...props }) => {
+  const { isOn, onTurn } = useContext(TurnOnOffContext);
 
   return (
-    <div>
-      <button {...s} onClick={() => setCounter((s) => s + 1)}>
-        Click to increase {counter}
-      </button>
-    </div>
+    <button onClick={onTurn} {...props}>
+      Turn {isOn ? 'OFF' : 'ON'}
+    </button>
   );
 };
 
+const P = ({ children }) => <p {...s}>{children}</p>;
+
 export const Home = () => {
   return (
-    <div {...s}>
-      <MyErrorBoundary>
-        <ItWillTrueError />
-      </MyErrorBoundary>
-    </div>
+    <TurnOnOff>
+      <div>
+        <p>Oi</p>
+        <TurnedOn>
+          <P>Aqui as coisas que vão acontecer quando estiver ON.</P>
+        </TurnedOn>
+        <TurnedOff>
+          <P>Aqui vem as coisas do OFF.</P>
+        </TurnedOff>
+        <TurnButton {...s} />
+      </div>
+    </TurnOnOff>
   );
 };
