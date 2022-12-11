@@ -1,49 +1,72 @@
-// Verificar tamanho da tela para "Media Queries de responsividade"
-/* (function () {
-  console.clear();
-  const matchMedia = window.matchMedia('(max-width: 768px)');
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-  matchMedia.addListener(function () {
-    console.log(matchMedia, window.innerWidth);
+export const ReactHooks = () => {
+  console.log('%cCHILD RENDER STARTING...', 'color: green');
+
+  // Lazy Initializer #1
+  const [state1, setState1] = useState(() => {
+    const state = new Date().toLocaleDateString();
+    console.log('%cState Lazy initializer - (useState + InitialValue) = ' + state, 'color: green');
+    return state;
   });
-})(); */
-
-import { useDebugValue, useEffect, useState } from 'react';
-
-const useMediaQuery = (queryValue, initialValue = false) => {
-  const [match, setMatch] = useState(initialValue);
-
-  useDebugValue('Qualquer coisa que eu quiser');
+  const renders = useRef(0);
 
   useEffect(() => {
-    let isMounted = true;
-    const matchMedia = window.matchMedia(queryValue);
+    console.log('%cuseEffect (UPDATE state1) ' + state1, 'color: #dbc70f');
+  }, [state1]);
 
-    const handleChange = () => {
-      // Verifica se a função esta montada ainda
-      if (!isMounted) return;
-      setMatch(Boolean(matchMedia.matches));
-    };
-
-    matchMedia.addEventListener('change', handleChange);
-    setMatch(!!matchMedia.matches);
+  useEffect(() => {
+    console.log('%cuseEffect -> No Dependencies', 'color: #dbc70f');
+    renders.current += 1;
 
     return () => {
-      isMounted = false;
-      matchMedia.removeEventListener('change', handleChange);
+      console.log('%cuseEffect (Cleanup) -> No Dependencies', 'color: #dbc70f');
     };
-  }, [queryValue]);
+  });
 
-  return match;
+  useEffect(() => {
+    const listener = () => console.log('Listener...');
+    console.log('%cuseEffect -> Empty dependencies', 'color: #dbc70f');
+
+    return () => {
+      console.log('%cuseEffect (Cleanup) -> Empty dependencies', 'color: #dbc70f');
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    console.log('%cuseLayoutEffect', 'color: #e61a4d');
+
+    return () => {
+      console.log('%cuseLayoutEffect (Cleanup)', 'color: #e61a4d');
+    };
+  });
+
+  console.log('%cCHILD RENDER ' + renders.current + ' ENDING...', 'color: green');
+  return (
+    <div onClick={() => setState1(new Date().toLocaleString('pt-br'))} style={{ fontSize: '60px' }}>
+      State: {state1}
+    </div>
+  );
 };
 
 export const Home = () => {
-  const huge = useMediaQuery('(min-width: 980px)');
-  const big = useMediaQuery('(max-width: 979px) and (min-width: 768px)');
-  const medium = useMediaQuery('(max-width: 767px) and (min-width: 321px)');
-  const small = useMediaQuery('(max-width: 321px)');
+  const renders = useRef(0);
 
-  const background = huge ? 'green' : big ? 'red' : medium ? 'yellow' : small ? 'purple' : null;
+  useEffect(() => {
+    renders.current += 1;
+  });
 
-  return <div style={{ fontSize: '60px', background }}> Oi</div>;
+  console.log(`%cPARENT RENDER ${renders.current} STARTING...`, 'color: green');
+  const [show, setShow] = useState(false);
+  console.log('%cState Initializer - (useState + InitialValue) = ' + show, 'color: green');
+  console.log(`%cPARENT RENDER ${renders.current} ENDING...`, 'color: green');
+
+  return (
+    <div>
+      <p style={{ fontSize: '60px' }} onClick={() => setShow((s) => !s)}>
+        Show hooks
+      </p>
+      {show && <ReactHooks />}
+    </div>
+  );
 };
